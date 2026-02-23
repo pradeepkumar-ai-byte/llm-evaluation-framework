@@ -43,8 +43,6 @@ Scores are validated automatically before reporting.
 
 ## ▶️ Usage
 
-Run locally:
-
 ```bash
 python run.py
 Or specify dataset:
