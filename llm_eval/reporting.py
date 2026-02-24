@@ -1,52 +1,81 @@
 """
-Statistical reporting module.
-Computes evaluation metrics and prints console summary.
+Reporting Layer
+
+Author: Pradeep Kumar
+
+Generates deterministic statistical summaries for evaluation datasets.
 """
 
-from typing import List, Dict
-from statistics import mean, stdev
-from collections import Counter
-from .config import CRITERIA
+from typing import Dict, List
+
+from .config import Config
+from .models import Dataset
+from .utils import mean, standard_deviation, confidence_interval
+from .exceptions import StatisticalComputationError
 
 
-def compute_statistics(data: List[Dict]) -> Dict:
-    stats = {}
+def generate_report(dataset: Dataset, config: Config) -> str:
+    """
+    Generate a formatted statistical summary report.
+    """
 
-    for criterion in CRITERIA:
-        scores = [item["label"][criterion] for item in data]
+    try:
+        dimension_scores = _collect_dimension_scores(dataset, config)
 
-        stats[criterion] = {
-            "mean": mean(scores),
-            "std_dev": stdev(scores) if len(scores) > 1 else 0.0,
-            "failure_rate": scores.count(0) / len(scores),
-            "perfect_rate": scores.count(2) / len(scores),
-            "distribution": dict(Counter(scores))
-        }
+        report_lines: List[str] = []
+        report_lines.append("LLM Evaluation Report")
+        report_lines.append("-" * 30)
 
-    return stats
+        overall_scores = []
+
+        for dimension, scores in dimension_scores.items():
+            m = mean(scores)
+            sd = standard_deviation(scores)
+            ci = confidence_interval(scores, config.confidence_level)
+
+            overall_scores.extend(scores)
+
+            report_lines.append(f"\nDimension: {dimension}")
+            report_lines.append(f"  Mean: {m:.4f}")
+            report_lines.append(f"  Std Dev: {sd:.4f}")
+            report_lines.append(f"  95% CI Margin: ±{ci:.4f}")
+
+        overall_mean = mean(overall_scores)
+        overall_sd = standard_deviation(overall_scores)
+        overall_ci = confidence_interval(
+            overall_scores,
+            config.confidence_level,
+        )
+
+        report_lines.append("\nOverall Summary")
+        report_lines.append(f"  Overall Mean: {overall_mean:.4f}")
+        report_lines.append(f"  Overall Std Dev: {overall_sd:.4f}")
+        report_lines.append(f"  Overall 95% CI Margin: ±{overall_ci:.4f}")
+
+        return "\n".join(report_lines)
+
+    except Exception as e:
+        raise StatisticalComputationError(
+            f"Reporting computation failed: {str(e)}"
+        )
 
 
-def generate_console_report(data: List[Dict], stats: Dict) -> None:
-    print("=" * 70)
-    print("LLM EVALUATION SUMMARY REPORT")
-    print("=" * 70)
-    print(f"Dataset size: {len(data)} items\n")
+def _collect_dimension_scores(
+    dataset: Dataset,
+    config: Config,
+) -> Dict[str, List[int]]:
+    """
+    Collect per-dimension score lists from dataset.
+    """
 
-    overall_means = []
+    dimension_scores: Dict[str, List[int]] = {
+        dim: [] for dim in config.required_dimensions
+    }
 
-    for criterion, values in stats.items():
-        readable = criterion.replace("_", " ").title()
-        overall_means.append(values["mean"])
+    for entry in dataset:
+        for dimension in config.required_dimensions:
+            dimension_scores[dimension].append(
+                entry.scores[dimension]
+            )
 
-        print(readable)
-        print(f"  Mean Score   : {values['mean']:.2f}")
-        print(f"  Std Dev      : {values['std_dev']:.2f}")
-        print(f"  Failure Rate : {values['failure_rate']:.2%}")
-        print(f"  Perfect Rate : {values['perfect_rate']:.2%}")
-        print(f"  Distribution : {values['distribution']}")
-        print()
-
-    overall_score = mean(overall_means)
-    print("-" * 70)
-    print(f"Overall Model Quality Score: {overall_score:.2f} / 2.00")
-    print("=" * 70)
+    return dimension_scores
