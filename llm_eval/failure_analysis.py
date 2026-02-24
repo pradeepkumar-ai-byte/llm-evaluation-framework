@@ -1,40 +1,76 @@
 """
-Failure taxonomy analysis module.
-Categorizes hard failures (score = 0).
+Failure Analysis Layer
+
+Author: Pradeep Kumar
+
+Identifies weakest-performing dimensions and ranked failure patterns.
 """
 
-from typing import List, Dict
-from .config import CRITERIA
+from typing import Dict, List, Tuple
+
+from .models import Dataset
+from .config import Config
+from .utils import mean
+from .exceptions import StatisticalComputationError
 
 
-def categorize_failures(data: List[Dict]) -> Dict:
-    summary = {
-        "instruction_failures": 0,
-        "factual_errors": 0,
-        "logic_breakdowns": 0,
-        "safety_violations": 0,
-        "tone_mismatches": 0,
-        "total_failed_samples": 0
-    }
+def analyze_failures(
+    dataset: Dataset,
+    config: Config,
+) -> Dict[str, object]:
+    """
+    Analyze dimension-level failure characteristics.
 
-    for item in data:
-        failed = [c for c in CRITERIA if item["label"][c] == 0]
+    Returns:
+        {
+            "dimension_means": {...},
+            "ranked_dimensions": [...],
+            "failure_rates": {...},
+            "flagged_dimensions": [...]
+        }
+    """
 
-        if not failed:
-            continue
+    try:
+        dimension_scores = {
+            dim: [] for dim in config.required_dimensions
+        }
 
-        summary["total_failed_samples"] += 1
+        for entry in dataset:
+            for dim in config.required_dimensions:
+                dimension_scores[dim].append(
+                    entry.scores[dim]
+                )
 
-        for criterion in failed:
-            if criterion == "instruction_adherence":
-                summary["instruction_failures"] += 1
-            elif criterion == "factual_accuracy":
-                summary["factual_errors"] += 1
-            elif criterion == "logical_coherence":
-                summary["logic_breakdowns"] += 1
-            elif criterion == "safety":
-                summary["safety_violations"] += 1
-            elif criterion == "tone_alignment":
-                summary["tone_mismatches"] += 1
+        dimension_means: Dict[str, float] = {}
+        failure_rates: Dict[str, float] = {}
 
-    return summary
+        for dim, scores in dimension_scores.items():
+            dimension_means[dim] = mean(scores)
+
+            failures = sum(
+                1 for s in scores if s == config.score_min
+            )
+            failure_rates[dim] = failures / len(scores)
+
+        ranked_dimensions = sorted(
+            dimension_means.items(),
+            key=lambda x: x[1]
+        )
+
+        flagged_dimensions = [
+            dim
+            for dim, rate in failure_rates.items()
+            if rate > 0.5
+        ]
+
+        return {
+            "dimension_means": dimension_means,
+            "ranked_dimensions": ranked_dimensions,
+            "failure_rates": failure_rates,
+            "flagged_dimensions": flagged_dimensions,
+        }
+
+    except Exception as e:
+        raise StatisticalComputationError(
+            f"Failure analysis failed: {str(e)}"
+        )
