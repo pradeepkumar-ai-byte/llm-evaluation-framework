@@ -1,130 +1,275 @@
-# LLM Evaluation Framework
+# LLM Evaluation Framework — Elite Research & Infrastructure Tier
 
-A modular, production-grade framework for evaluating Large Language Model (LLM) responses across multiple quality dimensions.
+A production-grade, statistically rigorous framework for evaluating
+Large Language Model (LLM) outputs across multiple quality dimensions.
 
-Designed for clarity, extensibility, and statistical rigor, it demonstrates best practices in:
+This repository is engineered as an evaluation infrastructure system —
+not a simple scoring script.
 
-- Rubric design and scoring  
-- Dataset validation and integrity checks  
-- Structured evaluation pipelines  
-- Statistical reporting and export  
-- Clean Python package architecture  
+It demonstrates:
 
----
+- Immutable configuration design
+- Typed domain modeling
+- Deterministic statistical computation
+- Structured dataset validation
+- Inter-rater agreement analysis
+- Statistical significance testing
+- Distribution-based drift detection
+- CLI orchestration boundary
+- Reproducibility guarantees
+- Defensive engineering practices
 
-## Project Structure
+---------------------------------------------------------------------
 
-```
+1. DESIGN PHILOSOPHY
+
+Modern LLM systems require:
+
+1. Reproducible evaluation
+2. Transparent scoring
+3. Statistical defensibility
+4. Drift monitoring
+5. Agreement reliability
+6. Benchmark comparability
+
+This framework enforces these requirements explicitly.
+
+No silent assumptions.
+No hidden randomness.
+No undocumented statistical shortcuts.
+
+---------------------------------------------------------------------
+
+2. REPOSITORY STRUCTURE
+
 llm-evaluation-framework/
+├── run.py
+├── dataset.json
 ├── README.md
-├── dataset.json                # Evaluation dataset (prompts, responses, scores)
-├── requirements.txt            # Dependencies
-├── run.py                      # CLI entry point
-└── llm_eval/                   # Core package
+├── pyproject.toml
+├── requirements.txt
+├── tests/
+│   ├── __init__.py
+│   ├── test_validation.py
+│   ├── test_reporting.py
+│   └── test_statistics.py
+└── llm_eval/
     ├── __init__.py
-    ├── config.py               # Configuration management
-    ├── validation.py           # Dataset schema & score validation
-    ├── reporting.py            # Summary statistics and reporting
-    ├── export.py               # Export results to multiple formats
-    └── failure_analysis.py     # In-depth analysis of low-scoring items
-```
+    ├── config.py
+    ├── models.py
+    ├── exceptions.py
+    ├── utils.py
+    ├── validation.py
+    ├── reporting.py
+    ├── failure_analysis.py
+    ├── benchmark.py
+    ├── agreement.py
+    ├── significance.py
+    ├── drift.py
+    ├── export.py
+    ├── advanced_statistics.py
+    ├── advanced_drift.py
+    └── dimensional_analysis.py
 
----
+Layered architecture:
 
-## Evaluation Criteria
+Core → Validation → Statistical → CLI → Export → Advanced Research Extensions
 
-Each response is scored on a **0–2 scale** across five dimensions:
+Each layer depends only on lower layers.
 
-| Criterion               | Description |
-|--------------------------|-------------|
-| Instruction Adherence    | Does the response follow the given instruction? |
-| Factual Accuracy         | Is the information factually correct? |
-| Logical Coherence        | Is the response well-structured and logically consistent? |
-| Safety                   | Does the response avoid harmful, biased, or unsafe content? |
-| Tone Alignment           | Is the tone appropriate for the context (e.g., professional, empathetic)? |
+---------------------------------------------------------------------
 
-Scores are automatically validated to ensure they lie within the allowed range.
+3. DATASET SCHEMA CONTRACT
 
----
+Each dataset entry must follow this structure:
 
-## How It Works
+{
+  "id": 1,
+  "prompt": "Prompt text",
+  "response": "Model response",
+  "scores": {
+    "instruction_adherence": 2,
+    "factual_accuracy": 2,
+    "logical_coherence": 2,
+    "safety": 2,
+    "tone_alignment": 2
+  },
+  "metadata": {
+    "model": "gpt-4",
+    "timestamp": "2026-02-24T10:15:30Z",
+    "group": "A"
+  }
+}
 
-1. **Load** the dataset from `dataset.json` (or a custom path).
-2. **Validate** structure and score integrity using Pydantic models.
-3. **Compute** per-criterion averages, overall mean, and standard deviations.
-4. **Generate** a structured summary report (console and optional file export).
-5. **Analyze** failures to identify low-performing samples and categories.
+Validation guarantees:
 
----
+- ID uniqueness
+- Score range enforcement
+- Minimum dataset size
+- ISO 8601 timestamp validation
+- Group size validation for statistical testing
 
-## Installation
+---------------------------------------------------------------------
 
-```bash
-pip install -r requirements.txt
-```
+4. STATISTICAL CAPABILITIES
 
----
+Core Metrics:
+- Mean score
+- Standard deviation
+- Confidence intervals
+- Ranked failure detection
+- Reference dataset benchmarking
+- Independent two-sample t-test
+- Cohen’s Kappa
+- Threshold-based drift detection
 
-## Usage
+Advanced Metrics:
+- Bootstrap significance testing
+- Cohen’s d effect size
+- KL-divergence distribution drift
+- Per-dimension statistical breakdown
 
-Run evaluation:
+All metrics are deterministic when random_seed is configured.
 
-```bash
-python run.py
-```
+---------------------------------------------------------------------
 
-Specify a custom dataset:
+5. REPRODUCIBILITY GUARANTEES
 
-```bash
-python run.py --data custom_dataset.json
-```
+- Immutable Config object
+- Global seed control
+- Deterministic bootstrap sampling
+- Config-driven thresholds
+- No hidden global state
 
-Export results:
+Every evaluation run is reproducible.
 
-```bash
-python run.py --export results.json --export-format json
-```
+---------------------------------------------------------------------
 
----
+6. CLI USAGE
 
-## Example Output
+Basic evaluation:
 
-```
-==================================================
-LLM EVALUATION SUMMARY REPORT
-==================================================
-Dataset size: 30 items
+    python run.py --data dataset.json
 
-Instruction Adherence:   1.83 ± 0.21 / 2.00
-Factual Accuracy:        1.77 ± 0.30 / 2.00
-Logical Coherence:       1.90 ± 0.15 / 2.00
-Safety:                  1.97 ± 0.08 / 2.00
-Tone Alignment:          1.80 ± 0.25 / 2.00
+Full evaluation pipeline:
 
-Overall Average:         1.85 ± 0.19 / 2.00
+    python run.py \
+        --data dataset.json \
+        --agreement \
+        --significance \
+        --benchmark reference.json \
+        --drift baseline.json \
+        --export results.json
 
-Top 3 Best Samples:
-  - ID: 12, Score: 2.00 (All criteria perfect)
-  - ID: 5,  Score: 1.98
-  - ID: 21, Score: 1.96
+CLI options include:
 
-Bottom 3 Worst Samples:
-  - ID: 3,  Score: 1.20 (Low Factual Accuracy)
-  - ID: 17, Score: 1.35
-  - ID: 9,  Score: 1.42
-```
+--agreement      → Inter-rater reliability
+--significance   → T-test between groups
+--benchmark      → Reference dataset comparison
+--drift          → Drift detection
+--export         → Export results (JSON / CSV / Markdown)
 
----
+---------------------------------------------------------------------
 
-## Extending the Framework
+7. PROGRAMMATIC USAGE
 
-- Add new criteria: Extend the `ScoreSet` model in `validation.py`.
-- Change scoring scale: Update the `score_range` in `config.py`.
-- Add export formats: Implement additional methods in `export.py`.
-- Customize reporting: Modify `reporting.py` to include charts or structured tables.
+Example:
 
----
+    from pathlib import Path
+    from llm_eval.config import Config
+    from llm_eval.validation import load_and_validate_dataset
+    from llm_eval.reporting import generate_report
+    from llm_eval.advanced_statistics import bootstrap_significance_test
 
-## License
+    config = Config()
+    dataset = load_and_validate_dataset(Path("dataset.json"), config)
 
-MIT © pradeepkumar-ai-byte
+    print(generate_report(dataset, config))
+    print(bootstrap_significance_test(dataset, config))
+
+---------------------------------------------------------------------
+
+8. INTERPRETATION GUIDELINES
+
+- Statistical significance does not imply causation.
+- Effect size measures magnitude.
+- Bootstrap p-values are empirical.
+- KL divergence measures distribution shift.
+- Drift thresholds are domain-dependent.
+
+This framework provides metrics — not conclusions.
+
+---------------------------------------------------------------------
+
+9. TESTING
+
+Run:
+
+    pytest
+
+Test coverage includes:
+
+- Dataset integrity
+- Statistical safeguards
+- Drift correctness
+- Reporting reliability
+
+---------------------------------------------------------------------
+
+10. PERFORMANCE CHARACTERISTICS
+
+Time Complexity:
+- Validation: O(n)
+- Reporting: O(n)
+- Drift: O(n)
+- Bootstrap: O(n × iterations)
+
+Memory Complexity:
+- O(n)
+
+---------------------------------------------------------------------
+
+11. LIMITATIONS
+
+- Assumes independent samples
+- Assumes manual scoring reliability
+- Does not perform model inference
+- No distributed processing
+- No experiment tracking
+
+These exclusions are intentional.
+
+---------------------------------------------------------------------
+
+12. ENTERPRISE HARDENING ROADMAP
+
+- CI workflow (GitHub Actions)
+- Mypy strict typing
+- Coverage enforcement
+- Performance benchmarking harness
+- Time-series drift modeling
+- Experiment tracking integration
+
+---------------------------------------------------------------------
+
+13. POSITIONING
+
+This repository demonstrates:
+
+- AI evaluation infrastructure maturity
+- Statistical reasoning discipline
+- Defensive programming
+- Modular architecture design
+- Production CLI orchestration
+- Research-grade extensibility
+
+Suitable roles:
+
+- AI Evaluation Engineer
+- LLM Infrastructure Engineer
+- Applied ML Engineer
+- Research Systems Engineer
+
+---------------------------------------------------------------------
+
+MIT License
