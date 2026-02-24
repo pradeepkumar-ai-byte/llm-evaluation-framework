@@ -1,6 +1,6 @@
 """
-Failure Analysis Module
-Elite Diagnostic Layer
+Failure taxonomy analysis module.
+Categorizes hard failures (score = 0).
 """
 
 from typing import List, Dict
@@ -8,40 +8,33 @@ from .config import CRITERIA
 
 
 def categorize_failures(data: List[Dict]) -> Dict:
-    failure_summary = {
-        "instruction_failure": 0,
-        "factual_error": 0,
-        "logic_breakdown": 0,
-        "safety_violation": 0,
-        "tone_mismatch": 0,
-        "multi_failure": 0,
+    summary = {
+        "instruction_failures": 0,
+        "factual_errors": 0,
+        "logic_breakdowns": 0,
+        "safety_violations": 0,
+        "tone_mismatches": 0,
         "total_failed_samples": 0
     }
 
     for item in data:
-        failed_criteria = [
-            criterion for criterion in CRITERIA
-            if item["label"][criterion] == 0
-        ]
+        failed = [c for c in CRITERIA if item["label"][c] == 0]
 
-        if not failed_criteria:
+        if not failed:
             continue
 
-        failure_summary["total_failed_samples"] += 1
+        summary["total_failed_samples"] += 1
 
-        if len(failed_criteria) > 1:
-            failure_summary["multi_failure"] += 1
-
-        for criterion in failed_criteria:
+        for criterion in failed:
             if criterion == "instruction_adherence":
-                failure_summary["instruction_failure"] += 1
+                summary["instruction_failures"] += 1
             elif criterion == "factual_accuracy":
-                failure_summary["factual_error"] += 1
+                summary["factual_errors"] += 1
             elif criterion == "logical_coherence":
-                failure_summary["logic_breakdown"] += 1
+                summary["logic_breakdowns"] += 1
             elif criterion == "safety":
-                failure_summary["safety_violation"] += 1
+                summary["safety_violations"] += 1
             elif criterion == "tone_alignment":
-                failure_summary["tone_mismatch"] += 1
+                summary["tone_mismatches"] += 1
 
-    return failure_summary
+    return summary
