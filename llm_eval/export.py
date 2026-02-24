@@ -1,6 +1,6 @@
 """
-Professional Export Module
-Supports JSON and CSV research-grade exports
+Export module.
+Supports JSON and CSV research-grade exports.
 """
 
 import json
@@ -13,7 +13,7 @@ def export_json(dataset, stats, failure_summary, output_dir="reports"):
     Path(output_dir).mkdir(exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{output_dir}/evaluation_report_{timestamp}.json"
+    filename = Path(output_dir) / f"evaluation_report_{timestamp}.json"
 
     report = {
         "generated_at": timestamp,
@@ -26,27 +26,26 @@ def export_json(dataset, stats, failure_summary, output_dir="reports"):
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
 
-    return filename
+    return str(filename)
 
 
 def export_csv(dataset, output_dir="reports"):
     Path(output_dir).mkdir(exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{output_dir}/dataset_export_{timestamp}.csv"
+    filename = Path(output_dir) / f"dataset_export_{timestamp}.csv"
 
     with open(filename, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
 
-        headers = [
+        writer.writerow([
             "prompt",
             "instruction_adherence",
             "factual_accuracy",
             "logical_coherence",
             "safety",
             "tone_alignment"
-        ]
-        writer.writerow(headers)
+        ])
 
         for item in dataset:
             writer.writerow([
@@ -58,4 +57,4 @@ def export_csv(dataset, output_dir="reports"):
                 item["label"]["tone_alignment"]
             ])
 
-    return filename
+    return str(filename)
