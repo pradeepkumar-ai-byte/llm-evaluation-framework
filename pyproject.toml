@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-evaluation-framework"
+version = "0.1.0"
+description = "Production-grade statistical evaluation framework for LLM outputs"
+authors = [
+    { name="Pradeep Kumar" }
+]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
