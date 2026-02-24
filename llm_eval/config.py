@@ -1,5 +1,6 @@
 """
-Configuration for LLM Evaluation Framework
+Configuration module for LLM Evaluation Framework
+Defines evaluation criteria and scoring boundaries.
 """
 
 CRITERIA = [
@@ -10,5 +11,5 @@ CRITERIA = [
     "tone_alignment"
 ]
 
-MAX_SCORE = 2
 MIN_SCORE = 0
+MAX_SCORE = 2
