@@ -8,7 +8,6 @@ Entry point for LLM Evaluation Framework.
 
 import argparse
 from pathlib import Path
-import json
 
 from llm_eval.config import Config
 from llm_eval.validation import load_and_validate_dataset
@@ -18,6 +17,7 @@ from llm_eval.agreement import compute_cohens_kappa
 from llm_eval.benchmark import benchmark_against_reference
 from llm_eval.advanced_drift import detect_kl_drift
 from llm_eval.advanced_statistics import bootstrap_significance_test
+from llm_eval.export import export_results
 
 
 def main():
@@ -25,86 +25,116 @@ def main():
         description="LLM Evaluation Framework CLI"
     )
 
-    parser.add_argument("--data", required=True, help="Dataset JSON file")
-    parser.add_argument("--agreement", action="store_true")
-    parser.add_argument("--significance", action="store_true")
-    parser.add_argument("--benchmark", help="Reference dataset JSON file")
-    parser.add_argument("--drift", help="Baseline dataset JSON file")
-    parser.add_argument("--export", help="Export results to JSON file")
+    parser.add_argument(
+        "--data",
+        required=True,
+        help="Path to evaluation dataset JSON file",
+    )
+
+    parser.add_argument(
+        "--agreement",
+        action="store_true",
+        help="Compute inter-rater agreement (Cohen's Kappa)",
+    )
+
+    parser.add_argument(
+        "--significance",
+        action="store_true",
+        help="Run independent t-test and bootstrap significance",
+    )
+
+    parser.add_argument(
+        "--benchmark",
+        help="Path to reference dataset JSON file",
+    )
+
+    parser.add_argument(
+        "--drift",
+        help="Path to baseline dataset JSON file",
+    )
+
+    parser.add_argument(
+        "--export",
+        help="Export results to JSON file",
+    )
 
     args = parser.parse_args()
 
     config = Config()
 
-    dataset = load_and_validate_dataset(Path(args.data), config)
+    # Load main dataset
+    dataset = load_and_validate_dataset(
+        Path(args.data),
+        config,
+    )
 
     results = {}
 
-    # Core report
+    # Generate core report
     report = generate_report(dataset, config)
     print(report)
     results["report"] = report
 
-    # Agreement
+    # Agreement analysis
     if args.agreement:
         agreement = compute_cohens_kappa(dataset, config)
         print("\nCohen's Kappa:")
         print(agreement)
         results["agreement"] = agreement
 
-    # Significance
+    # Significance testing
     if args.significance:
-        significance = independent_t_test(dataset, config)
-        bootstrap = bootstrap_significance_test(dataset, config)
+        t_test_result = independent_t_test(dataset, config)
+        bootstrap_result = bootstrap_significance_test(dataset, config)
 
         print("\nT-Test Result:")
-        print(significance)
+        print(t_test_result)
 
         print("\nBootstrap Result:")
-        print(bootstrap)
+        print(bootstrap_result)
 
-        results["significance"] = significance
-        results["bootstrap"] = bootstrap
+        results["significance"] = t_test_result
+        results["bootstrap"] = bootstrap_result
 
-    # Benchmark
+    # Benchmark comparison
     if args.benchmark:
         reference_dataset = load_and_validate_dataset(
             Path(args.benchmark),
             config,
         )
-        benchmark = benchmark_against_reference(
+
+        benchmark_result = benchmark_against_reference(
             dataset,
             reference_dataset,
             config,
         )
 
         print("\nBenchmark Result:")
-        print(benchmark)
+        print(benchmark_result)
 
-        results["benchmark"] = benchmark
+        results["benchmark"] = benchmark_result
 
-    # Drift
+    # Drift detection
     if args.drift:
         baseline_dataset = load_and_validate_dataset(
             Path(args.drift),
             config,
         )
-        drift = detect_kl_drift(
+
+        drift_result = detect_kl_drift(
             dataset,
             baseline_dataset,
             config,
         )
 
         print("\nDrift Detection:")
-        print(drift)
+        print(drift_result)
 
-        results["drift"] = drift
+        results["drift"] = drift_result
 
-    # Export
+    # Export results
     if args.export:
-        with open(args.export, "w", encoding="utf-8") as f:
-            json.dump(results, f, indent=4)
-
+        export_results(results, Path(args.export))
         print(f"\nResults exported to {args.export}")
 
 
