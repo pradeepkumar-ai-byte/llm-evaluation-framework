@@ -1,95 +1,111 @@
-#!/usr/bin/env python3
 """
-LLM Evaluation Framework – Elite Professional Runner
+CLI Orchestration Layer
 
-Pipeline:
-1. Load dataset
-2. Validate structure
-3. Compute statistics
-4. Analyze failure taxonomy
-5. Compute category performance
-6. Generate console report
-7. Export JSON + CSV reports
+Author: Pradeep Kumar
+
+Entry point for LLM Evaluation Framework.
 """
 
-import sys
-import json
+import argparse
 from pathlib import Path
+import json
 
-from llm_eval.validation import validate_data
-from llm_eval.reporting import compute_statistics, generate_console_report
-from llm_eval.failure_analysis import categorize_failures
-from llm_eval.category_analysis import compute_category_performance
-from llm_eval.export import export_json, export_csv
-
-
-DATA_PATH = Path("llm_eval/dataset.json")
-
-
-def load_dataset(path: Path):
-    if not path.exists():
-        print(f"❌ Dataset not found at {path}")
-        sys.exit(1)
-
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except json.JSONDecodeError as e:
-        print(f"❌ Invalid JSON format: {e}")
-        sys.exit(1)
+from llm_eval.config import Config
+from llm_eval.validation import load_and_validate_dataset
+from llm_eval.reporting import generate_report
+from llm_eval.significance import independent_t_test
+from llm_eval.agreement import compute_cohens_kappa
+from llm_eval.benchmark import benchmark_against_reference
+from llm_eval.advanced_drift import detect_kl_drift
+from llm_eval.advanced_statistics import bootstrap_significance_test
 
 
 def main():
-    print("\n" + "=" * 70)
-    print("LLM EVALUATION FRAMEWORK – ELITE EDITION")
-    print("=" * 70)
+    parser = argparse.ArgumentParser(
+        description="LLM Evaluation Framework CLI"
+    )
 
-    # 1️⃣ Load dataset
-    dataset = load_dataset(DATA_PATH)
+    parser.add_argument("--data", required=True, help="Dataset JSON file")
+    parser.add_argument("--agreement", action="store_true")
+    parser.add_argument("--significance", action="store_true")
+    parser.add_argument("--benchmark", help="Reference dataset JSON file")
+    parser.add_argument("--drift", help="Baseline dataset JSON file")
+    parser.add_argument("--export", help="Export results to JSON file")
 
-    # 2️⃣ Validate structure
-    validate_data(dataset)
+    args = parser.parse_args()
 
-    # 3️⃣ Compute statistics
-    stats = compute_statistics(dataset)
+    config = Config()
 
-    # 4️⃣ Failure analysis
-    failure_summary = categorize_failures(dataset)
+    dataset = load_and_validate_dataset(Path(args.data), config)
 
-    # 5️⃣ Category performance
-    category_stats = compute_category_performance(dataset)
+    results = {}
 
-    # 6️⃣ Console report
-    generate_console_report(dataset, stats)
+    # Core report
+    report = generate_report(dataset, config)
+    print(report)
+    results["report"] = report
 
-    # 🔎 Failure Diagnostics
-    print("\n" + "=" * 70)
-    print("FAILURE DIAGNOSTIC SUMMARY")
-    print("=" * 70)
+    # Agreement
+    if args.agreement:
+        agreement = compute_cohens_kappa(dataset, config)
+        print("\nCohen's Kappa:")
+        print(agreement)
+        results["agreement"] = agreement
 
-    for key, value in failure_summary.items():
-        print(f"{key.replace('_', ' ').title():30}: {value}")
+    # Significance
+    if args.significance:
+        significance = independent_t_test(dataset, config)
+        bootstrap = bootstrap_significance_test(dataset, config)
 
-    # 📊 Category Analytics
-    print("\n" + "=" * 70)
-    print("CATEGORY PERFORMANCE ANALYSIS")
-    print("=" * 70)
+        print("\nT-Test Result:")
+        print(significance)
 
-    for category, scores in category_stats.items():
-        print(f"\nCategory: {category}")
-        for criterion, avg in scores.items():
-            print(f"  {criterion.replace('_',' ').title():25}: {avg:.2f}")
+        print("\nBootstrap Result:")
+        print(bootstrap)
 
-    # 7️⃣ Export Reports
-    json_path = export_json(dataset, stats, failure_summary)
-    csv_path = export_csv(dataset)
+        results["significance"] = significance
+        results["bootstrap"] = bootstrap
 
-    print("\n" + "=" * 70)
-    print("EXPORT COMPLETE")
-    print("=" * 70)
-    print(f"JSON report saved to: {json_path}")
-    print(f"CSV export saved to: {csv_path}")
-    print("=" * 70 + "\n")
+    # Benchmark
+    if args.benchmark:
+        reference_dataset = load_and_validate_dataset(
+            Path(args.benchmark),
+            config,
+        )
+        benchmark = benchmark_against_reference(
+            dataset,
+            reference_dataset,
+            config,
+        )
+
+        print("\nBenchmark Result:")
+        print(benchmark)
+
+        results["benchmark"] = benchmark
+
+    # Drift
+    if args.drift:
+        baseline_dataset = load_and_validate_dataset(
+            Path(args.drift),
+            config,
+        )
+        drift = detect_kl_drift(
+            dataset,
+            baseline_dataset,
+            config,
+        )
+
+        print("\nDrift Detection:")
+        print(drift)
+
+        results["drift"] = drift
+
+    # Export
+    if args.export:
+        with open(args.export, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=4)
+
+        print(f"\nResults exported to {args.export}")
 
 
 if __name__ == "__main__":
