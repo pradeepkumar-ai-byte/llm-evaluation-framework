@@ -1,8 +1,1 @@
-transformers
-torch
-datasets
-pyyaml
-tqdm
-fastapi
-uvicorn
 pytest
