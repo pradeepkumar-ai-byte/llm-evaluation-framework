@@ -28,7 +28,7 @@ def create_valid_dataset():
             },
         },
         {
-            "id": 1,
+            "id": 2,  # Unique ID
             "prompt": "Test",
             "response": "Test",
             "scores": {
@@ -62,7 +62,9 @@ def test_valid_dataset_passes():
 def test_duplicate_id_fails():
     config = Config(min_dataset_size=2)
     data = create_valid_dataset()
-    data[1]["id"] = 2
+
+    # Force duplicate ID intentionally
+    data[1]["id"] = 1
 
     with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp:
         json.dump(data, tmp)
