@@ -18,9 +18,6 @@ def analyze_failures(
     dataset: Dataset,
     config: Config,
 ) -> Dict[str, Any]:
-    """
-    Analyze dimension-level failure characteristics.
-    """
 
     try:
         dimension_scores: Dict[str, List[int]] = {
