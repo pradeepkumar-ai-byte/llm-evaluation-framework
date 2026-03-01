@@ -21,13 +21,6 @@ def bootstrap_significance_test(
 ) -> Dict[str, float]:
     """
     Perform bootstrap significance testing between two groups.
-
-    Returns:
-        {
-            "observed_mean_difference": float,
-            "empirical_p_value": float,
-            "significant": bool
-        }
     """
 
     try:
@@ -44,10 +37,11 @@ def bootstrap_significance_test(
         group_a = group_scores[groups[0]]
         group_b = group_scores[groups[1]]
 
-if len(group_a) < 2 or len(group_b) < 2:
-    raise StatisticalComputationError(
-        "Bootstrap requires at least 2 samples per group."
-    )
+        # Enforce minimum sample size per group
+        if len(group_a) < 2 or len(group_b) < 2:
+            raise StatisticalComputationError(
+                "Bootstrap requires at least 2 samples per group."
+            )
 
         observed_diff = mean(group_a) - mean(group_b)
 
