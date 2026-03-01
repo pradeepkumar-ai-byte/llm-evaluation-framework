@@ -19,9 +19,6 @@ def bootstrap_significance_test(
     dataset: Dataset,
     config: Config,
 ) -> Dict[str, float]:
-    """
-    Perform bootstrap significance testing between two groups.
-    """
 
     try:
         set_global_seed(config.random_seed)
@@ -37,7 +34,6 @@ def bootstrap_significance_test(
         group_a = group_scores[groups[0]]
         group_b = group_scores[groups[1]]
 
-        # Enforce minimum sample size per group
         if len(group_a) < 2 or len(group_b) < 2:
             raise StatisticalComputationError(
                 "Bootstrap requires at least 2 samples per group."
