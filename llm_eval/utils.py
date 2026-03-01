@@ -37,6 +37,7 @@ def confidence_interval(
     Returns margin of error for given confidence level
     using normal approximation (large-sample assumption).
     """
+
     values_list = list(values)
 
     if not values_list:
@@ -44,13 +45,12 @@ def confidence_interval(
             "Cannot compute confidence interval on empty list."
         )
 
-    z = 1.96  # 95% default normal approximation
-
     if confidence_level != 0.95:
         raise ValueError(
             "Currently only 95% confidence supported."
         )
 
+    z = 1.96  # 95% normal approximation
     sd = standard_deviation(values_list)
     n = len(values_list)
 
