@@ -10,14 +10,17 @@ for LLM evaluation datasets.
 import json
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Set, Any
 
 from .config import Config
 from .models import EvaluationEntry, Metadata, Dataset
 from .exceptions import DatasetValidationError
 
 
-def load_and_validate_dataset(path: Path, config: Config) -> Dataset:
+def load_and_validate_dataset(
+    path: Path,
+    config: Config,
+) -> Dataset:
     """
     Load dataset from JSON file and perform full validation.
     """
@@ -26,18 +29,21 @@ def load_and_validate_dataset(path: Path, config: Config) -> Dataset:
         raise DatasetValidationError(f"Dataset file not found: {path}")
 
     with path.open("r", encoding="utf-8") as f:
-        raw_data = json.load(f)
+        raw_data: Any = json.load(f)
 
     if not isinstance(raw_data, list):
-        raise DatasetValidationError("Dataset must be a list of entries.")
+        raise DatasetValidationError(
+            "Dataset must be a list of entries."
+        )
 
     if len(raw_data) < config.min_dataset_size:
         raise DatasetValidationError(
-            f"Dataset must contain at least {config.min_dataset_size} entries."
+            f"Dataset must contain at least "
+            f"{config.min_dataset_size} entries."
         )
 
     entries: List[EvaluationEntry] = []
-    seen_ids = set()
+    seen_ids: Set[int] = set()
     group_counts: Dict[str, int] = {}
 
     for item in raw_data:
@@ -47,6 +53,7 @@ def load_and_validate_dataset(path: Path, config: Config) -> Dataset:
             raise DatasetValidationError(
                 f"Duplicate ID detected: {entry.id}"
             )
+
         seen_ids.add(entry.id)
 
         group_counts[entry.metadata.group] = (
@@ -60,8 +67,18 @@ def load_and_validate_dataset(path: Path, config: Config) -> Dataset:
     return entries
 
 
-def _validate_entry(item: Dict, config: Config) -> EvaluationEntry:
-    required_fields = {"id", "prompt", "response", "scores", "metadata"}
+def _validate_entry(
+    item: Dict[str, Any],
+    config: Config,
+) -> EvaluationEntry:
+
+    required_fields = {
+        "id",
+        "prompt",
+        "response",
+        "scores",
+        "metadata",
+    }
 
     if not required_fields.issubset(item.keys()):
         raise DatasetValidationError(
@@ -87,9 +104,15 @@ def _validate_entry(item: Dict, config: Config) -> EvaluationEntry:
     )
 
 
-def _validate_scores(scores: Dict[str, int], config: Config) -> None:
+def _validate_scores(
+    scores: Dict[str, int],
+    config: Config,
+) -> None:
+
     if not isinstance(scores, dict):
-        raise DatasetValidationError("Scores must be a dictionary.")
+        raise DatasetValidationError(
+            "Scores must be a dictionary."
+        )
 
     required = set(config.required_dimensions)
     provided = set(scores.keys())
@@ -104,6 +127,7 @@ def _validate_scores(scores: Dict[str, int], config: Config) -> None:
             raise DatasetValidationError(
                 f"Score for '{dimension}' must be integer."
             )
+
         if not (config.score_min <= value <= config.score_max):
             raise DatasetValidationError(
                 f"Score for '{dimension}' must be between "
@@ -111,7 +135,10 @@ def _validate_scores(scores: Dict[str, int], config: Config) -> None:
             )
 
 
-def _validate_metadata(metadata: Dict) -> None:
+def _validate_metadata(
+    metadata: Dict[str, Any],
+) -> None:
+
     required_fields = {"model", "timestamp", "group"}
 
     if not required_fields.issubset(metadata.keys()):
@@ -120,25 +147,32 @@ def _validate_metadata(metadata: Dict) -> None:
         )
 
     try:
-        datetime.fromisoformat(metadata["timestamp"].replace("Z", "+00:00"))
+        datetime.fromisoformat(
+            metadata["timestamp"].replace("Z", "+00:00")
+        )
     except ValueError:
         raise DatasetValidationError(
-            f"Invalid ISO 8601 timestamp: {metadata['timestamp']}"
+            f"Invalid ISO 8601 timestamp: "
+            f"{metadata['timestamp']}"
         )
 
 
-def _validate_group_integrity(group_counts: Dict[str, int]) -> None:
+def _validate_group_integrity(
+    group_counts: Dict[str, int],
+) -> None:
     """
     Ensures at least two groups exist and
-    each group contains at least 2 samples for statistical testing.
+    each group contains at least 2 samples.
     """
+
     if len(group_counts) < 2:
         raise DatasetValidationError(
-            "At least two groups are required for statistical comparison."
+            "At least two groups are required "
+            "for statistical comparison."
         )
 
     for group, count in group_counts.items():
         if count < 2:
             raise DatasetValidationError(
                 f"Group '{group}' must contain at least 2 entries."
-    )
+            )
