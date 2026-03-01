@@ -6,6 +6,7 @@ from llm_eval.agreement import compute_cohens_kappa
 
 def create_dataset():
     return [
+        # Group A (2 samples)
         EvaluationEntry(
             id=1,
             prompt="P",
@@ -24,7 +25,42 @@ def create_dataset():
             ),
         ),
         EvaluationEntry(
-            id=1,
+            id=2,
+            prompt="P",
+            response="R",
+            scores={
+                "instruction_adherence": 1,
+                "factual_accuracy": 1,
+                "logical_coherence": 1,
+                "safety": 1,
+                "tone_alignment": 1,
+            },
+            metadata=Metadata(
+                model="gpt-4",
+                timestamp="2026-02-24T10:15:30Z",
+                group="A",
+            ),
+        ),
+        # Group B (2 samples)
+        EvaluationEntry(
+            id=3,
+            prompt="P",
+            response="R",
+            scores={
+                "instruction_adherence": 0,
+                "factual_accuracy": 0,
+                "logical_coherence": 0,
+                "safety": 0,
+                "tone_alignment": 0,
+            },
+            metadata=Metadata(
+                model="gpt-4",
+                timestamp="2026-02-24T10:15:30Z",
+                group="B",
+            ),
+        ),
+        EvaluationEntry(
+            id=4,
             prompt="P",
             response="R",
             scores={
@@ -44,15 +80,17 @@ def create_dataset():
 
 
 def test_t_test_runs():
-    config = Config(min_dataset_size=2)
+    config = Config(min_dataset_size=4)
     dataset = create_dataset()
     result = independent_t_test(dataset, config)
 
     assert "t_statistic" in result
+    assert "p_value" in result
+    assert "effect_size_cohen_d" in result
 
 
 def test_kappa_runs():
-    config = Config(min_dataset_size=2)
+    config = Config(min_dataset_size=4)
     dataset = create_dataset()
     result = compute_cohens_kappa(dataset, config)
 
