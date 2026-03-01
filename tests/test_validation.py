@@ -9,7 +9,15 @@ from llm_eval.exceptions import DatasetValidationError
 
 
 def create_valid_dataset():
+    """
+    Creates a fully valid dataset satisfying:
+    - Unique IDs
+    - >= 2 entries per group
+    - Proper schema
+    """
+
     return [
+        # Group A (2 entries)
         {
             "id": 1,
             "prompt": "Test",
@@ -22,13 +30,13 @@ def create_valid_dataset():
                 "tone_alignment": 2,
             },
             "metadata": {
-                "model": "gpt-4",
+                "model": "rater_1",
                 "timestamp": "2026-02-24T10:15:30Z",
                 "group": "A",
             },
         },
         {
-            "id": 2,  # Unique ID
+            "id": 2,
             "prompt": "Test",
             "response": "Test",
             "scores": {
@@ -39,7 +47,43 @@ def create_valid_dataset():
                 "tone_alignment": 1,
             },
             "metadata": {
-                "model": "gpt-4",
+                "model": "rater_2",
+                "timestamp": "2026-02-24T10:15:30Z",
+                "group": "A",
+            },
+        },
+
+        # Group B (2 entries)
+        {
+            "id": 3,
+            "prompt": "Test",
+            "response": "Test",
+            "scores": {
+                "instruction_adherence": 0,
+                "factual_accuracy": 0,
+                "logical_coherence": 0,
+                "safety": 0,
+                "tone_alignment": 0,
+            },
+            "metadata": {
+                "model": "rater_1",
+                "timestamp": "2026-02-24T10:15:30Z",
+                "group": "B",
+            },
+        },
+        {
+            "id": 4,
+            "prompt": "Test",
+            "response": "Test",
+            "scores": {
+                "instruction_adherence": 1,
+                "factual_accuracy": 1,
+                "logical_coherence": 1,
+                "safety": 1,
+                "tone_alignment": 1,
+            },
+            "metadata": {
+                "model": "rater_2",
                 "timestamp": "2026-02-24T10:15:30Z",
                 "group": "B",
             },
@@ -48,7 +92,7 @@ def create_valid_dataset():
 
 
 def test_valid_dataset_passes():
-    config = Config(min_dataset_size=2)
+    config = Config(min_dataset_size=4)
     data = create_valid_dataset()
 
     with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp:
@@ -56,14 +100,15 @@ def test_valid_dataset_passes():
         tmp_path = Path(tmp.name)
 
     dataset = load_and_validate_dataset(tmp_path, config)
-    assert len(dataset) == 2
+
+    assert len(dataset) == 4
 
 
 def test_duplicate_id_fails():
-    config = Config(min_dataset_size=2)
+    config = Config(min_dataset_size=4)
     data = create_valid_dataset()
 
-    # Force duplicate ID intentionally
+    # Force duplicate ID
     data[1]["id"] = 1
 
     with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp:
