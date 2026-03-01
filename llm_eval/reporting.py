@@ -26,14 +26,19 @@ def generate_report(dataset: Dataset, config: Config) -> str:
         report_lines.append("LLM Evaluation Report")
         report_lines.append("-" * 30)
 
-        overall_scores = []
+        overall_scores: List[float] = []
 
         for dimension, scores in dimension_scores.items():
-            m = mean(scores)
-            sd = standard_deviation(scores)
-            ci = confidence_interval(scores, config.confidence_level)
+            float_scores: List[float] = [float(s) for s in scores]
 
-            overall_scores.extend(scores)
+            m = mean(float_scores)
+            sd = standard_deviation(float_scores)
+            ci = confidence_interval(
+                float_scores,
+                config.confidence_level,
+            )
+
+            overall_scores.extend(float_scores)
 
             report_lines.append(f"\nDimension: {dimension}")
             report_lines.append(f"  Mean: {m:.4f}")
@@ -64,9 +69,6 @@ def _collect_dimension_scores(
     dataset: Dataset,
     config: Config,
 ) -> Dict[str, List[int]]:
-    """
-    Collect per-dimension score lists from dataset.
-    """
 
     dimension_scores: Dict[str, List[int]] = {
         dim: [] for dim in config.required_dimensions
