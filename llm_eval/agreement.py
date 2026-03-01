@@ -6,10 +6,10 @@ Author: Pradeep Kumar
 Implements Cohen's Kappa for inter-rater reliability.
 """
 
-from typing import Dict, List
+from typing import Dict, List, DefaultDict
 from collections import defaultdict
 
-from .models import Dataset
+from .models import Dataset, EvaluationEntry
 from .config import Config
 from .exceptions import StatisticalComputationError
 
@@ -29,8 +29,8 @@ def compute_cohens_kappa(
         kappa_results: Dict[str, float] = {}
 
         for dimension in config.required_dimensions:
-            rater_a_scores = []
-            rater_b_scores = []
+            rater_a_scores: List[int] = []
+            rater_b_scores: List[int] = []
 
             for pair in paired_entries.values():
                 rater_a_scores.append(pair[0].scores[dimension])
@@ -47,12 +47,14 @@ def compute_cohens_kappa(
         )
 
 
-def _pair_by_id(dataset: Dataset):
+def _pair_by_id(
+    dataset: Dataset,
+) -> Dict[int, List[EvaluationEntry]]:
     """
     Group entries by ID and ensure exactly two ratings per ID.
     """
 
-    grouped = defaultdict(list)
+    grouped: DefaultDict[int, List[EvaluationEntry]] = defaultdict(list)
 
     for entry in dataset:
         grouped[entry.id].append(entry)
@@ -63,7 +65,7 @@ def _pair_by_id(dataset: Dataset):
                 f"ID {entry_id} must have exactly 2 ratings."
             )
 
-    return grouped
+    return dict(grouped)
 
 
 def _cohens_kappa(
@@ -81,16 +83,21 @@ def _cohens_kappa(
 
     n = len(rater_a)
 
+    if n == 0:
+        raise StatisticalComputationError(
+            "Cannot compute kappa on empty ratings."
+        )
+
     observed_agreement = sum(
         1 for a, b in zip(rater_a, rater_b) if a == b
     ) / n
 
     categories = set(rater_a) | set(rater_b)
 
-    prob_a = {
+    prob_a: Dict[int, float] = {
         c: rater_a.count(c) / n for c in categories
     }
-    prob_b = {
+    prob_b: Dict[int, float] = {
         c: rater_b.count(c) / n for c in categories
     }
 
@@ -103,4 +110,4 @@ def _cohens_kappa(
 
     return (observed_agreement - expected_agreement) / (
         1 - expected_agreement
-      )
+    )
